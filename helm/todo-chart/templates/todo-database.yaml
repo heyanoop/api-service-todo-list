@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: todo-database-secret
+  namespace: todo-app
+data:
+  db_name: dG9kb2Ri
+  username: dG9kb19kYl91c2Vy
+  password: cGFzc3dvcmQ=
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: todo-database-pv-volume
+  namespace: todo-app
+  labels:
+    type: local
+    app: todo-database
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data/tododb"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: todo-database-pv-claim
+  namespace: todo-app
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-database-deployment
+  namespace: todo-app
+  labels:
+    app: todo-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-database
+  template:
+    metadata:
+      labels:
+        app: todo-database
+    spec:
+      volumes:
+        - name: todo-database-pv-storage
+          persistentVolumeClaim:
+            claimName: todo-database-pv-claim
+      containers:
+        - name: todo-database
+          image: mongo
+          args: ["--dbpath", "/data/db"]
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: todo-database-secret
+                  key: password
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: todo-database-secret
+                  key: username
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: todo-database-secret
+                  key: db_name
+          volumeMounts:
+            - mountPath: /data/db
+              name: todo-database-pv-storage
+          resources:
+            limits:
+              memory: 2Gi
+            requests:
+              memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-database-service
+  namespace: todo-app
+  labels:
+    app: todo-database
+spec:
+  selector:
+    app: todo-database
+  ports:
+    - port: 27017
+      targetPort: 27017

@@ -18,7 +18,7 @@ pipeline {
                     docker login -u heyanoop -p ${DOCKER_PASS}
                     docker build -t ${DOCKER_IMAGE} .
                     docker push ${DOCKER_IMAGE}
-                    """
+                    """ 
                 }
             }
         }
@@ -34,23 +34,29 @@ pipeline {
                 }
             }
         }
-
       
-        // stage('Update Manifest') {
-        //     steps {
-        //        sh "sed -i 's|image: heyanoop/todo-api:.*|image: heyanoop/todo-api:${BUILD_NUMBER}|' k8s-specifications/result-deployment.yaml"
-        //     }
-        // }
-
+        stage('Update package and push helm') {
+            steps {
+                sh "sed -i 's|apiservice: heyanoop/todo-api:.*|apiservice: heyanoop/todo-api:${BUILD_NUMBER}|' helm/todo-chart/Chart.yaml"
+                sh "helm package helm/todo-chart --version ${BUILD_NUMBER}"
+            }
+        }
  
-        // stage('Deploy to AKS') {
-        //     steps {
-        //         withKubeConfig([serverUrl: "https://exampleaks1-0tlmtrhy.hcp.eastus.azmk8s.io", credentialsId: 'cluster-token']) {
-        //             sh 'kubectl apply -f k8s-specifications/result-deployment.yaml -n votingapp'
-        //         }
-        //     }
-        // }
+        stage('Helm deploy') {
+            steps {
+                withKubeConfig([serverUrl: "https://exampleaks1-0tlmtrhy.hcp.eastus.azmk8s.io", credentialsId: 'cluster-token']) {
+                    sh "helm uninstall todo-chart || true"
+                    sh "helm install todo-chart helm/todo-chart-${BUILD_NUMBER}.tgz"
+                }
+            }
         }
     }
-
     
+    post {
+        always {
+            script {
+                sh "./log-rotation.sh"
+            }
+        }
+    }
+}
