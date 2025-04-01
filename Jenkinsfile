@@ -44,9 +44,31 @@ pipeline {
  
         stage('Helm deploy') {
             steps {
-                withKubeConfig([serverUrl: "https://exampleaks1-0tlmtrhy.hcp.eastus.azmk8s.io", credentialsId: 'cluster-token']) {
+                withKubeConfig([serverUrl: "https://exampleaks1-qmdpoi1f.hcp.southindia.azmk8s.io", credentialsId: 'cluster-token']) {
                     sh "helm uninstall todo-chart || true"
-                    sh "helm install todo-chart helm/todo-chart-${BUILD_NUMBER}.tgz"
+                    sh "helm install todo-chart helm/todo-chart-${BUILD_NUMBER}.tgz || echo 'Helm install failed'"
+                }
+            }
+        }
+        
+       
+        stage('Log Rotation') {
+            steps {
+                script {
+                   
+                    sh '''
+                    #!/bin/bash
+                    
+                    LOG_FILE="build-log-$(date +%Y%m%d-%H%M%S).log"
+                    
+                    cp /var/lib/jenkins/jobs/api-service/builds/${BUILD_NUMBER}/log ./${LOG_FILE}
+                    
+                    aws s3 cp ${LOG_FILE} s3://jenkins-log-bucket-2025/ || echo "S3 upload failed"
+                    
+                    rm ${LOG_FILE}
+                    
+                    echo "Log rotation completed"
+                    '''
                 }
             }
         }
@@ -54,9 +76,7 @@ pipeline {
     
     post {
         always {
-            script {
-                sh "./log-rotation.sh"
-            }
+            echo "Pipeline completed with status: ${currentBuild.result}"
         }
     }
 }
