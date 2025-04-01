@@ -25,7 +25,6 @@ pipeline {
 
         stage('Trivy Security Scan') {
             steps {
-                sh "trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}"
                 sh "trivy image --format table ${DOCKER_IMAGE} | tee trivy_scan.log"
 
                 script {
@@ -45,8 +44,14 @@ pipeline {
         stage('Helm deploy') {
             steps {
                 withKubeConfig([serverUrl: "https://exampleaks1-qmdpoi1f.hcp.southindia.azmk8s.io", credentialsId: 'cluster-token']) {
-                    sh "helm uninstall todo-chart || true"
-                    sh "helm install todo-chart helm/todo-chart-${BUILD_NUMBER}.tgz || echo 'Helm install failed'"
+                    sh """
+                        if helm list -q | grep -w 'todo-chart'; then
+                          helm uninstall todo-chart
+                        else
+                          echo 'todo-chart is not installed'
+                        fi
+                       """
+                    sh "helm install todo-chart /var/lib/jenkins/workspace/api-service/todo-chart-${BUILD_NUMBER}.tgz || echo 'Helm install failed'"
                 }
             }
         }
