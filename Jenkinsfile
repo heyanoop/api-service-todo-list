@@ -34,24 +34,17 @@ pipeline {
             }
         }
       
-        stage('Update package and push helm') {
+        stage('Update manifest') {
             steps {
-                sh "sed -i 's|apiservice: heyanoop/todo-api:.*|apiservice: heyanoop/todo-api:${BUILD_NUMBER}|' helm/todo-chart/Chart.yaml"
-                sh "helm package helm/todo-chart --version ${BUILD_NUMBER}"
+                sh "sed -i 's|image: heyanoop/todo-api:.*|image: heyanoop/todo-api:${BUILD_NUMBER}|' manifest/api-deployment.yaml"
             }
         }
  
         stage('Helm deploy') {
             steps {
                 withKubeConfig([serverUrl: "https://exampleaks1-qmdpoi1f.hcp.southindia.azmk8s.io", credentialsId: 'cluster-token']) {
-                    sh """
-                        if helm list -q | grep -w 'todo-chart'; then
-                          helm uninstall todo-chart
-                        else
-                          echo 'todo-chart is not installed'
-                        fi
-                       """
-                    sh "helm install todo-chart /var/lib/jenkins/workspace/api-service/todo-chart-${BUILD_NUMBER}.tgz || echo 'Helm install failed'"
+                    
+                    sh "kubectl apply -f manifest/api-deployment.yaml"
                 }
             }
         }

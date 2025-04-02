@@ -1,5 +1,0 @@
-image:
-  apiservice: heyanoop/todo-api:1.0
-  authservice: heyanoop/todo-auth:1.0
-  frontend: heyanoop/todo-frontend:2.4
-  todoservice: heyanoop/todo-todo-service:1.0
