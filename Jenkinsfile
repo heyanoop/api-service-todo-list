@@ -60,6 +60,7 @@ pipeline {
         stage('Log Rotation') {
             steps {
                 script {
+                    withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-key', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                    
                     sh '''
                     #!/bin/bash
@@ -68,12 +69,12 @@ pipeline {
                     
                     cp /var/lib/jenkins/jobs/api-service/builds/${BUILD_NUMBER}/log ./${LOG_FILE}
                     
-                    aws s3 cp ${LOG_FILE} s3://jenkins-log-bucket-2025/ || echo "S3 upload failed"
-                    
+                    aws s3 cp ${LOG_FILE} s3://jenkins-log-bucket-2025/
                     rm ${LOG_FILE}
                     
                     echo "Log rotation completed"
                     '''
+                    }
                 }
             }
         }
