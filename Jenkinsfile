@@ -15,6 +15,13 @@ pipeline {
             steps {
                 script {
             sh '''
+            pyenv install 3.8.10
+            pyenv global 3.8.10
+            python --version  # Verify Python version
+            '''
+
+            // Create and activate virtual environment with the correct Python version
+            sh '''
             python -m venv venv
             source venv/bin/activate
             pip install --upgrade pip
