@@ -14,14 +14,33 @@ pipeline {
          stage('Install Dependencies') {
             steps {
                 script {
-                sh '''#!/bin/bash
-                python3 -m venv venv
-                source venv/bin/activate
-                pip install --upgrade pip
-                pip install poetry
-                poetry install
-                    '''
-                }
+            // Install required dependencies
+            sh 'sudo apt-get update && sudo apt-get install -y python3-venv python3-dev build-essential git curl'
+
+            // Install pyenv
+            sh '''
+            curl https://pyenv.run | bash
+            export PATH="$HOME/.pyenv/bin:$PATH"
+            eval "$(pyenv init --path)"
+            eval "$(pyenv init -)"
+            '''
+            
+            // Install Python 3.8.10 using pyenv and set it as the default version
+            sh '''
+            pyenv install 3.8.10
+            pyenv global 3.8.10
+            python --version  # Verify Python version
+            '''
+
+            // Create and activate virtual environment with the correct Python version
+            sh '''
+            python -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install poetry
+            poetry install
+            '''
+        }
             }
         }
         
