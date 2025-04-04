@@ -14,10 +14,13 @@ pipeline {
          stage('Install Dependencies') {
             steps {
                 script {
-                    sh 'python3 -m venv venv'
-                    sh 'source venv/bin/activate && pip install --upgrade pip'
-                    sh 'source venv/bin/activate && pip install poetry'
-                    sh 'source venv/bin/activate && poetry install'
+                sh '''#!/bin/bash
+                python3 -m venv venv
+                source venv/bin/activate
+                pip install --upgrade pip
+                pip install poetry
+                poetry install
+                    '''
                 }
             }
         }
