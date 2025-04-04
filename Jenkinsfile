@@ -11,6 +11,35 @@ pipeline {
             }
         }
 
+         stage('Install Dependencies') {
+            steps {
+                script {
+                    sh 'pip install poetry'
+                    
+                    sh 'poetry install'
+                }
+            }
+        }
+        
+         stage('SonarQube Analysis') {
+            steps {
+                script {
+                    
+                    def scannerHome = tool 'sonar-scanner';
+
+                    withSonarQubeEnv(credentialsId: 'sonarqube-token') {
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=todo-api-service \
+                            -Dsonar.projectName="Todo API Service" \
+                            -Dsonar.sources=app.py,protobuf \
+                            -Dsonar.exclusions=**/test/**,**/tests/**
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Build and Push Docker Image') {
             steps {
                 withCredentials([string(credentialsId: 'dockerhub-password', variable: 'DOCKER_PASS')]) {
@@ -43,13 +72,11 @@ pipeline {
         stage('Helm deploy') {
             steps {
                 withKubeConfig([serverUrl: "https://exampleaks1-qmdpoi1f.hcp.southindia.azmk8s.io", credentialsId: 'cluster-token']) {
-                    
                     sh "kubectl apply -f manifest/api-deployment.yaml"
                 }
             }
         }
         
-       
         stage('Log Rotation') {
             steps {
                 script {
