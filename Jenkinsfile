@@ -15,6 +15,7 @@ pipeline {
             steps {
                 script {
             sh '''
+            which pyenv
             pyenv install 3.8.10
             pyenv global 3.8.10
             python --version  # Verify Python version
