@@ -21,7 +21,6 @@ pipeline {
             python --version  # Verify Python version
             '''
 
-            // Create and activate virtual environment with the correct Python version
             sh '''
             python -m venv venv
             source venv/bin/activate
@@ -37,7 +36,7 @@ pipeline {
             steps {
                 script {
                     
-                    def scannerHome = tool 'sonar-scanner';
+                    def scannerHome = tool 'sonarqube-token';
 
                     withSonarQubeEnv(credentialsId: 'sonarqube-token') {
                         sh """
@@ -54,7 +53,7 @@ pipeline {
 
         stage('Build and Push Docker Image') {
             steps {
-                withCredentials([string(credentialsId: 'dockerhub-password', variable: 'DOCKER_PASS')]) {
+                withCredentials([string(credentialsId: 'dockerhub-token', variable: 'DOCKER_PASS')]) {
                     sh """
                     docker login -u heyanoop -p ${DOCKER_PASS}
                     docker build -t ${DOCKER_IMAGE} .
@@ -89,27 +88,27 @@ pipeline {
             }
         }
         
-        stage('Log Rotation') {
-            steps {
-                script {
-                    withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-key', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        // stage('Log Rotation') {
+        //     steps {
+        //         script {
+        //             withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-key', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                    
-                    sh '''
-                    #!/bin/bash
+        //             sh '''
+        //             #!/bin/bash
                     
-                    LOG_FILE="build-log-$(date +%Y%m%d-%H%M%S).log"
+        //             LOG_FILE="build-log-$(date +%Y%m%d-%H%M%S).log"
                     
-                    cp /var/lib/jenkins/jobs/api-service/builds/${BUILD_NUMBER}/log ./${LOG_FILE}
+        //             cp /var/lib/jenkins/jobs/api-service/builds/${BUILD_NUMBER}/log ./${LOG_FILE}
                     
-                    aws s3 cp ${LOG_FILE} s3://jenkins-log-bucket-2025/
-                    rm ${LOG_FILE}
+        //             aws s3 cp ${LOG_FILE} s3://jenkins-log-bucket-2025/
+        //             rm ${LOG_FILE}
                     
-                    echo "Log rotation completed"
-                    '''
-                    }
-                }
-            }
-        }
+        //             echo "Log rotation completed"
+        //             '''
+        //             }
+        //         }
+        //     }
+        // }
     }
     
     post {
